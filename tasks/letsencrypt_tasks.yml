@@ -1,0 +1,35 @@
+---
+# Self contained tasks for installing Certbot
+- name: Install certbot
+  zypper:
+    name:
+      - python3-certbot
+      - certbot-systemd-timer
+    extra_args_precommand: '--gpg-auto-import-keys'
+
+- name: Install certbot sysconfig
+  template:
+    src: files/certbot
+    dest: /etc/sysconfig/certbot
+    mode: 0644
+    owner: root
+    group: root
+
+# Test presence of letsencrypt cert created from initial one-shot run
+- name: Check for letsencrypt cert
+  stat:
+    path: /etc/letsencrypt/live/{{ hostname }}
+  register: cert_present
+
+- name: Initial one-shot letsencrypt command to create cert
+  command: |
+        certbot -v certonly --standalone --preferred-challenges http \
+        -d {{ hostname }} --agree-tos --email webmaster@{{ hostname }} \
+        --non-interactive
+  when: not cert_present.stat.exists
+
+- name: Enable certbot cert renew timer
+  service:
+    name: certbot-renew.timer
+    state: started
+    enabled: yes

@@ -1,0 +1,30 @@
+---
+- name: Install nftables
+  package:
+    name: nftables
+    state: latest
+
+- name: Install nftables.service
+  copy:
+    src: files/nftables.service
+    dest: /etc/systemd/system/nftables.service
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Install nftables.conf
+  copy:
+    src: files/nftables.conf
+    dest: /etc/nftables.conf
+    owner: root
+    group: root
+    mode: '0640'
+  notify:
+    - Restart nftables
+
+- name: Install and enable nftables service
+  systemd:
+    name: nftables.service
+    daemon_reload: yes
+    enabled: yes
+    state: started

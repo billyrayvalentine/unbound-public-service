@@ -1,0 +1,69 @@
+server:
+	verbosity: 1
+	statistics-interval: 0
+	statistics-cumulative: no
+	extended-statistics: yes
+	num-threads: 2
+	interface-automatic: no
+	#outgoing-port-permit: 32768-65535
+	#outgoing-port-avoid: 0-32767
+	max-udp-size: 3072
+	chroot: ""
+	username: "unbound"
+	directory: "/etc/unbound"
+	log-time-ascii: yes
+	pidfile: "/var/run/unbound/unbound.pid"
+	harden-glue: yes
+	harden-dnssec-stripped: yes
+	harden-below-nxdomain: yes
+	harden-referral-path: yes
+	use-caps-for-id: no
+	unwanted-reply-threshold: 10000000
+	prefetch: yes
+	prefetch-key: yes
+	rrset-roundrobin: yes
+	minimal-responses: yes
+	trusted-keys-file: /etc/unbound/keys.d/*.key
+	auto-trust-anchor-file: "/var/lib/unbound/root.key"
+	val-clean-additional: yes
+	val-permissive-mode: no
+	val-log-level: 1
+
+    # log to stderror (journald)
+    logfile: ""
+
+    interface: 0.0.0.0@853
+    tls-service-key: /etc/letsencrypt/live/{{ hostname }}/privkey.pem
+    tls-service-pem: /etc/letsencrypt/live/{{ hostname }}/fullchain.pem
+
+    access-control: 0.0.0.0/0 allow
+
+    # Hide hostname leak (id.server & hostname.bind)
+    # e.g. dig @localhost id.server -c CH -t TXT
+    # id.server.              0       CH      TXT     "<hostname>"
+    hide-identity: yes
+
+    # Hide server version info (version.server & version.bind)
+    # e.g. dig @localhost version.server -c CH -t TXT
+    # version.server.         0       CH      TXT     "unbound 1.13.0"
+    hide-version: yes
+
+    # Allow getting the IDs of the trusted anchor keys
+    # Default to no anyway
+    # e.g. dig @localhost trustanchor.unbound -c CH -t TXT
+    # trustanchor.unbound.    0       CH      TXT     ". 20326"
+    hide-trustanchor: no
+
+    log-queries: no
+    do-ip6: no
+
+    # do some rate limiting - all experimental disable for now and use nftables
+    # instead
+    # 100 requests max per second (that are not cached) and 20/second/ip max
+    #ratelimit: 100
+    #ip-ratelimit: 20
+    #ip-ratelimit-factor: 1
+
+# Enable remete control on localhost for datadog agent
+remote-control:
+    control-enable: yes

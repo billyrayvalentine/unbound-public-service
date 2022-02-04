@@ -1,0 +1,56 @@
+---
+# Task to setup baseline and absolute minimum sysadmin environment
+
+# Install baseline_packages
+# Seem to need this on Linode as it appears to never have been run
+- name: run update-ca-certificates
+  command: update-ca-certificates
+  args:
+    creates: /var/lib/ca-certificates/ca-bundle.pem
+
+- name: Install baseline packages
+  zypper:
+    name: "{{ baseline_packages }}"
+    extra_args_precommand: '--gpg-auto-import-keys'
+
+# User setup
+- name: create wheel group
+  group:
+    name: wheel
+    state: present
+
+- name: Add operator to admin groups
+  user:
+    name: "{{ admin_user }}"
+    append: yes
+    groups: wheel,systemd-journal
+
+- name: Enable sudo all for operator (members of wheel group)
+  copy:
+    dest: /etc/sudoers.d/wheel_all
+    content: '%wheel ALL=(ALL) NOPASSWD: ALL'
+    validate: visudo -cf %s
+
+- name: Set up admin user with an SSH key
+  authorized_key:
+    user: "{{ admin_user }}"
+    state: present
+    key: "{{ ssh_key }}"
+
+- name: Disable root login
+  tags: sshd
+  notify: Restart sshd
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^PermitRootLogin yes'
+    line: PermitRootLogin no
+    validate: sshd -t -f %s
+
+- name: Disable password login
+  tags: sshd
+  notify: Restart sshd
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: 'PasswordAuthentication yes'
+    line: PasswordAuthentication no
+    validate: sshd -t -f %s

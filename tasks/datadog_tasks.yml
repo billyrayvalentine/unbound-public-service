@@ -1,0 +1,45 @@
+# Install DataDog agent
+# - Turn log level down to warn - default is too noisy
+# - Disable the GCE collection - pollutes the logs even when not using GCE
+# - Use EU endpoint
+# - Always get the hostname from /etc/hostname which we guarantee to be the
+#   correct FQDN
+# - Disable tracefs
+# - Enables journald plugin - by default we log as much as we can here
+# - Add dd-agent user to the systemd-journal group for journald access
+#   and to the unbound-control group allowing access to the unbound-control keys
+#   for the unbound plugin
+# - Install unbound integration
+---
+- import_role:
+    name: datadog.datadog
+  vars:
+    datadog_api_key: "{{ datadog_api_key | mandatory }}"
+    datadog_site: "datadoghq.eu"
+    datadog_additional_groups:
+      - systemd-journal
+      - unbound-control
+    datadog_config:
+      collect_gce_tags: false
+      hostname_file: /etc/hostname
+      logs_enabled: true
+      log_level: warn
+    datadog_checks:
+      journald:
+        logs:
+        - type: journald
+      unbound:
+        instances:
+          -
+      disk:
+        init_config:
+        instances:
+          - use_mount: false
+            file_system_exclude:
+              - tracefs
+
+- name: Install datadog-unbound 1.0.1 integration
+  command:
+    cmd: datadog-agent integration install -r -t datadog-unbound==1.0.1
+    creates: /opt/datadog-agent/embedded/lib/python3.8/site-packages/datadog_checks/unbound
+  notify: restart datadog-agent

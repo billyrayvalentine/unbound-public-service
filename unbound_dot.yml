@@ -1,0 +1,105 @@
+---
+# Everything in a single playbook to configure a unbound DoT server
+# on openSUSE Leap 15.3
+
+- hosts: unbound
+  vars:
+
+    admin_user: operator # User created for sudo and ssh key access
+    ssh_key: "{{ lookup('file', '~/.ssh/id_your_key.pub') }}" # SSH key to use for admin_user
+    hostname: "{{ inventory_hostname }}" # Hostname to use for the TLS cert
+
+    baseline_packages:
+      - vim-data
+      - sudo
+
+  tasks:
+    - import_tasks: tasks/disable_ipv6.yml
+      tags: ipv6
+    - import_tasks: tasks/nftables_tasks.yml
+      tags: nftables
+    - import_tasks: tasks/sysadmin_tasks.yml
+      tags: sysadmin
+    - import_tasks: tasks/letsencrypt_tasks.yml
+      tags: letsencrypt
+
+    # zypper_repository module is always flaky - do it manually
+    - name: Install DNS repo
+      command: |
+        zypper --gpg-auto-import-keys addrepo -f \
+        -r https://download.opensuse.org/repositories/server:/dns/openSUSE_Leap_15.3/server:dns.repo
+      args:
+        creates: /etc/zypp/repos.d/server_dns.repo
+
+    - name: Add vendor for DNS repo
+      copy:
+        dest: /etc/zypp/vendors.d/01-obs-server_dns.conf
+        content: |
+          [main]
+          vendors=obs://build.opensuse.org/server:dns
+
+    - name: Install unbound
+      zypper:
+        name: unbound
+        extra_args_precommand: '--gpg-auto-import-keys'
+
+    - name: Install unbound.conf
+      tags: unbound
+      notify: Restart unbound
+      template:
+        src: files/unbound-dot.conf.j2
+        dest: /etc/unbound/unbound.conf
+        # TODO fix this validate.  It will always fail until the service is
+        # started for the first time when the unbound_control keys that are
+        # reference in the config file are created.
+        #validate: unbound-checkconf %s
+        owner: root
+        group: unbound
+        mode: '0644'
+
+    - name: Enable unbound
+      tags: unbound
+      service:
+        name: unbound
+        state: started
+        enabled: yes
+
+    - name: Add operator to admin groups
+      user:
+        name: "{{ admin_user }}"
+        append: yes
+        groups: unbound
+
+    - name: Create group for remote-control users
+      group:
+        name: unbound-control
+
+    - name: Set permissions for remote-control keys to remote-control group
+      file:
+        path: "{{ item }}"
+        owner: root
+        group: unbound-control
+        mode: 0640
+      loop:
+        - /etc/unbound/unbound_control.key
+        - /etc/unbound/unbound_control.pem
+        - /etc/unbound/unbound_server.pem
+
+    - import_tasks: tasks/datadog_tasks.yml
+      tags: datadog
+
+  handlers:
+    - name: Restart unbound
+      service:
+        name: unbound
+        state: restarted
+
+    - name: Restart sshd
+      service:
+        name: sshd
+        state: restarted
+
+    - name: Restart nftables
+      service:
+        name: nftables
+        state: restarted

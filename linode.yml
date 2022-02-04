@@ -1,0 +1,3 @@
+plugin: community.general.linode
+groups:
+  unbound: "'unbound' in (tags|list)"
