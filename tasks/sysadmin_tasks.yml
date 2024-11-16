@@ -3,15 +3,15 @@
 
 # Install baseline_packages
 # Seem to need this on Linode as it appears to never have been run
-- name: run update-ca-certificates
-  command: update-ca-certificates
-  args:
-    creates: /var/lib/ca-certificates/ca-bundle.pem
+# - name: run update-ca-certificates
+#   command: update-ca-certificates
+#   args:
+#     creates: /var/lib/ca-certificates/ca-bundle.pem
 
-- name: Install baseline packages
-  zypper:
-    name: "{{ baseline_packages }}"
-    extra_args_precommand: '--gpg-auto-import-keys'
+# - name: Install baseline packages
+#   zypper:
+#     name: "{{ baseline_packages }}"
+#     extra_args_precommand: '--gpg-auto-import-keys'
 
 # User setup
 - name: create wheel group
@@ -20,10 +20,11 @@
     state: present
 
 - name: Add operator to admin groups
-  user:
+  ansible.builtin.user:
     name: "{{ admin_user }}"
     append: yes
     groups: wheel,systemd-journal
+    home: "/home/{{ admin_user }}" # Seems to be /root if not specified?!
 
 - name: Enable sudo all for operator (members of wheel group)
   copy:
@@ -46,11 +47,12 @@
     line: PermitRootLogin no
     validate: sshd -t -f %s
 
-- name: Disable password login
-  tags: sshd
-  notify: Restart sshd
-  ansible.builtin.lineinfile:
-    path: /etc/ssh/sshd_config
-    regexp: 'PasswordAuthentication yes'
-    line: PasswordAuthentication no
-    validate: sshd -t -f %s
+# Already present in Digital Ocean Rocky 9
+# - name: Disable password login
+#   tags: sshd
+#   notify: Restart sshd
+#   ansible.builtin.lineinfile:
+#     path: /etc/ssh/sshd_config
+#     regexp: 'PasswordAuthentication yes'
+#     line: PasswordAuthentication no
+#     validate: sshd -t -f %s
