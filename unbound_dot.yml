@@ -14,8 +14,8 @@
       - sudo
 
   tasks:
-    # - import_tasks: tasks/disable_ipv6.yml
-    #   tags: ipv6
+    - import_tasks: tasks/disable_ipv6.yml
+      tags: ipv6
     # - import_tasks: tasks/nftables_tasks.yml
     #   tags: nftables
     - import_tasks: tasks/sysadmin_tasks.yml
