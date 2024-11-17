@@ -1,25 +1,23 @@
 ---
 # Everything in a single playbook to configure a unbound DoT server
-# on openSUSE Leap 15.3
+# on Debian 12
 
 - hosts: unbound
   vars:
-
-    admin_user: operator # User created for sudo and ssh key access
-    ssh_key: "{{ lookup('file', '~/.ssh/id_your_key.pub') }}" # SSH key to use for admin_user
-    hostname: "{{ inventory_hostname }}" # Hostname to use for the TLS cert, must be a FQDN also used for the certname and the apparmour profile update
-
-    baseline_packages:
-      - vim-data
-      - sudo
+    # User created for sudo and ssh key access
+    admin_user: operator
+    # SSH key to use for admin_user
+    ssh_key: "{{ lookup('file', '~/.ssh/id_your_key.pub') }}"
+    # Hostname to use for the TLS cert, must be a FQDN also used for the certname and the apparmour profile update
+    hostname: "{{ inventory_hostname }}"
 
   tasks:
     - import_tasks: tasks/disable_ipv6.yml
       tags: ipv6
-    # - import_tasks: tasks/nftables_tasks.yml
-    #   tags: nftables
+    - import_tasks: tasks/nftables_tasks.yml
+      tags: nftables
     - import_tasks: tasks/sysadmin_tasks.yml
-    # tags: sysadmin
+      tags: sysadmin
     - import_tasks: tasks/letsencrypt_tasks.yml
       tags: letsencrypt
 

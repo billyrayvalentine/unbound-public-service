@@ -55,13 +55,6 @@ server:
     log-queries: yes
     do-ip6: no
 
-    # do some rate limiting - all experimental disable for now and use nftables
-    # instead
-    # 100 requests max per second (that are not cached) and 20/second/ip max
-    #ratelimit: 100
-    #ip-ratelimit: 20
-    #ip-ratelimit-factor: 1
-
 # Enable remete control on localhost for datadog agent
 remote-control:
     control-enable: no
