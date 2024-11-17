@@ -7,7 +7,7 @@
 
     admin_user: operator # User created for sudo and ssh key access
     ssh_key: "{{ lookup('file', '~/.ssh/id_your_key.pub') }}" # SSH key to use for admin_user
-    hostname: "{{ inventory_hostname }}" # Hostname to use for the TLS cert
+    hostname: "{{ inventory_hostname }}" # Hostname to use for the TLS cert, must be a FQDN also used for the certname and the apparmour profile update
 
     baseline_packages:
       - vim-data
@@ -23,31 +23,48 @@
     - import_tasks: tasks/letsencrypt_tasks.yml
       tags: letsencrypt
 
-    # - name: Install unbound
-    #   zypper:
-    #     name: unbound
-    #     extra_args_precommand: '--gpg-auto-import-keys'
+    - name: Install unbound
+      package:
+        name: unbound
 
-    # - name: Install unbound.conf
-    #   tags: unbound
-    #   notify: Restart unbound
-    #   template:
-    #     src: files/unbound-dot.conf.j2
-    #     dest: /etc/unbound/unbound.conf
-    #     # TODO fix this validate.  It will always fail until the service is
-    #     # started for the first time when the unbound_control keys that are
-    #     # reference in the config file are created.
-    #     #validate: unbound-checkconf %s
-    #     owner: root   o
-    #     group: unbound
-    #     mode: '0644'
+    - name: "Ansible | Print a variable"
+      tags: debug
+      debug:
+        msg: |
+          "ncpu = {{ ansible_processor_nproc }}"
+          "vcpus = {{ ansible_processor_vcpus }}"
 
-    # - name: Enable unbound
-    #   tags: unbound
-    #   service:
-    #     name: unbound
-    #     state: started
-    #     enabled: yes
+    # The distribution app armour profile does not allow access to the letsencrypt certs
+    - name: Install unbound apparmor local profile
+      tags: unbound
+      notify: Restart apparmor
+      template:
+        src: files/apparmor.conf.j2
+        dest: /etc/apparmor.d/local/usr.sbin.unbound
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Install unbound.conf
+      tags: unbound
+      notify: Restart unbound
+      template:
+        src: files/unbound-dot.conf.j2
+        dest: /etc/unbound/unbound.conf.d/unbound-dot.conf
+        # TODO fix this validate.  It will always fail until the service is
+        # started for the first time when the unbound_control keys that are
+        # reference in the config file are created.
+        validate: unbound-checkconf %s
+        owner: root
+        group: unbound
+        mode: '0644'
+
+    - name: Enable unbound
+      tags: unbound
+      service:
+        name: unbound
+        state: started
+        enabled: yes
 
     # - name: Add operator to admin groups
     #   user:
@@ -88,3 +105,8 @@
       service:
         name: nftables
         state: restarted
+
+    - name: Restart apparmor
+      service:
+        name: apparmor
+        state: reloaded
