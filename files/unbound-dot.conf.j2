@@ -3,16 +3,13 @@ server:
 	statistics-interval: 0
 	statistics-cumulative: no
 	extended-statistics: yes
-	num-threads: 2
+	num-threads: {{ ansible_processor_cores }}
 	interface-automatic: no
-	#outgoing-port-permit: 32768-65535
-	#outgoing-port-avoid: 0-32767
 	max-udp-size: 3072
 	chroot: ""
 	username: "unbound"
-	directory: "/etc/unbound"
 	log-time-ascii: yes
-	pidfile: "/var/run/unbound/unbound.pid"
+	#pidfile: "/var/run/unbound/unbound.pid"
 	harden-glue: yes
 	harden-dnssec-stripped: yes
 	harden-below-nxdomain: yes
@@ -23,8 +20,8 @@ server:
 	prefetch-key: yes
 	rrset-roundrobin: yes
 	minimal-responses: yes
-	trusted-keys-file: /etc/unbound/keys.d/*.key
-	auto-trust-anchor-file: "/var/lib/unbound/root.key"
+	#trusted-keys-file: /etc/unbound/keys.d/*.key
+	#auto-trust-anchor-file: "/var/lib/unbound/root.key"
 	val-clean-additional: yes
 	val-permissive-mode: no
 	val-log-level: 1
@@ -54,7 +51,8 @@ server:
     # trustanchor.unbound.    0       CH      TXT     ". 20326"
     hide-trustanchor: no
 
-    log-queries: no
+    #log-queries: no
+    log-queries: yes
     do-ip6: no
 
     # do some rate limiting - all experimental disable for now and use nftables
@@ -66,4 +64,4 @@ server:
 
 # Enable remete control on localhost for datadog agent
 remote-control:
-    control-enable: yes
+    control-enable: no
