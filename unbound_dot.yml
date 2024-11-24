@@ -1,6 +1,5 @@
 ---
-# Everything in a single playbook to configure a unbound DoT server
-# on Debian 12
+# Everything in a single playbook to configure a unbound DoT server on Debian 12
 
 - hosts: unbound
   vars:
@@ -10,6 +9,8 @@
     ssh_key: "{{ lookup('file', '~/.ssh/id_your_key.pub') }}"
     # Hostname to use for the TLS cert, must be a FQDN also used for the certname and the apparmour profile update
     hostname: "{{ inventory_hostname }}"
+    # By default (on Debian 12 at least), resolv.conf will be updated to include unbound itself. Disable this.
+    disable_unbound_resolvconf_update: true
 
   tasks:
     - import_tasks: tasks/disable_ipv6.yml
@@ -42,6 +43,18 @@
         owner: root
         group: root
         mode: '0644'
+
+    - name: Disable unbound as system resolver
+      tags: unbound
+      notify: Restart unbound
+      lineinfile:
+        path: /etc/default/unbound
+        line: RESOLVCONF=false
+        create: yes
+        owner: root
+        group: root
+        mode: '0644'
+      when: disable_unbound_resolvconf_update
 
     - name: Install unbound.conf
       tags: unbound
