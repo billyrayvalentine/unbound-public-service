@@ -1,8 +1,9 @@
 ---
 - name: Install nftables
-  package:
-    name: nftables
+  ansible.builtin.apt:
+    name: unbound
     state: latest
+    update_cache: yes
 
 - name: Install nftables.conf
   copy:

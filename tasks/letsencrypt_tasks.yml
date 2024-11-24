@@ -1,8 +1,10 @@
 ---
 # Self contained tasks for installing Certbot
 - name: Install certbot
-  package:
+  ansible.builtin.apt:
     name: certbot
+    state: latest
+    update_cache: yes
 
 # Test presence of letsencrypt cert created from initial one-shot run
 - name: Check for letsencrypt cert

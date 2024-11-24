@@ -23,8 +23,10 @@
       tags: letsencrypt
 
     - name: Install unbound
-      package:
+      ansible.builtin.apt:
         name: unbound
+        state: latest
+        update_cache: yes
 
     - name: "Ansible | Print a variable"
       tags: debug
@@ -74,7 +76,6 @@
       tags: unbound
       service:
         name: unbound
-        state: started
         enabled: yes
 
     # - name: Add operator to admin groups
@@ -102,6 +103,11 @@
     #   tags: datadog
 
   handlers:
+    - name: Restart apparmor
+      service:
+        name: apparmor
+        state: restarted
+
     - name: Restart unbound
       service:
         name: unbound
@@ -116,8 +122,3 @@
       service:
         name: nftables
         state: restarted
-
-    - name: Restart apparmor
-      service:
-        name: apparmor
-        state: reloaded
